@@ -15,6 +15,7 @@ import { tagsHandler, createTagHandler, renameTagHandler, deleteTagHandler, batc
 import { validateApiKeyHandler, configHandler, cleanupHandler } from './handlers/system';
 import { handleQueueBatch } from './handlers/queue';
 import type { QueueMessage } from './types/queue';
+import type { ScheduledEvent, MessageBatch, ExecutionContext } from '@cloudflare/workers-types';
 
 const app = new Hono<{ Bindings: Env }>();
 

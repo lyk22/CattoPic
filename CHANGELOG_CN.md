@@ -8,6 +8,7 @@
 
 ### 新增
 
+- **D1 迁移** `worker/migrations/0003_api_keys_last_used_at.sql` — 若远程库里的 `api_keys` 表缺少 `last_used_at` 列可执行（避免出现 `validate-api-key` 返回 500 / `SQLITE_ERROR: no such column: last_used_at`）。
 - **Cloudflare Queues 可选化** - R2 文件删除不再强制依赖 Cloudflare Queues。在 wrangler.toml 中设置 `USE_QUEUE = 'true'` 使用异步队列删除，设置为 `'false'` 则使用同步删除（无需付费 Queue 功能）。
 - **ZIP 批量上传** - 支持通过 ZIP 压缩包批量上传图片
   - 使用 JSZip 在浏览器端解压
@@ -35,6 +36,10 @@
 
 ### 修复
 
+- API Key 校验更新 `api_keys` 时不再使用 `RETURNING id`（旧版 D1 表若没有 `id` 列会报错 `no such column: id`），改为 `RETURNING key`。
+- 规范化误写成带后缀路径 `/api` 的 Worker 根地址，避免请求打成 `/api/api/...`（此前会导致校验接口 404）。
+- 统一 `/api/config` 与 API Key 校验使用的后端地址：两者均读取 `NEXT_PUBLIC_API_URL`，并支持构建期回退 `API_URL`；当客户端未内联公网变量时，校验会回退请求同源 `/api/config`。
+- 校验与保存 API Key 前去除首尾空白，避免粘贴带入不可见空格导致校验失败。
 - 修复 WebP 和 AVIF 图片的方向检测 - 现在会正确读取图片实际尺寸，而不是默认返回 1920x1080。
 - 修复删除图片后上传页/管理页未及时刷新（TanStack Query 缓存 + recent uploads 列表导致需强刷）。
 - 修复管理页「随机图 API 生成器」未能正确解析真实 API Base URL（改为从 `/api/config` 获取），仍输出占位链接 `https://your-worker.workers.dev` 的问题。

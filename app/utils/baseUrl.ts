@@ -1,5 +1,24 @@
-// 从环境变量获取后端地址，默认为相对路径
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+/**
+ * Normalize Worker/API origin (no trailing slash).
+ * If the URL mistakenly ends with path `/api`, strip it so callers can safely append `/api/...`.
+ */
+export function normalizeWorkerOrigin(raw: string): string {
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  if (!trimmed) return "";
+  try {
+    const u = new URL(trimmed);
+    let path = u.pathname.replace(/\/+$/, "") || "";
+    if (path === "/api") {
+      return u.origin;
+    }
+    return path === "/" ? u.origin : `${u.origin}${path}`;
+  } catch {
+    return trimmed.replace(/\/?api\/?$/i, "").replace(/\/+$/, "");
+  }
+}
+
+// 从环境变量获取后端地址（去掉误加的 `/api` 后缀），默认为相对路径
+export const BASE_URL = normalizeWorkerOrigin(process.env.NEXT_PUBLIC_API_URL || "");
 
 /**
  * 为URL添加基础地址

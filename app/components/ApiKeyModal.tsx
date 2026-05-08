@@ -43,18 +43,19 @@ export default function ApiKeyModal({ isOpen, onClose, onSuccess }: ApiKeyModalP
         setError('');
 
         try {
-            const isValid = await validateApiKey(apiKey);
+            const trimmed = apiKey.trim();
+            const isValid = await validateApiKey(trimmed);
             if (isValid) {
                 // 显示成功动画
                 setShowSuccess(true);
 
                 // 保存API Key到本地存储
-                saveApiKey(apiKey);
+                saveApiKey(trimmed);
 
                 // 等待动画完成后关闭弹窗
                 setTimeout(() => {
                     setShowSuccess(false);
-                    onSuccess(apiKey);
+                    onSuccess(trimmed);
                     onClose();
                 }, 1200);
             } else {

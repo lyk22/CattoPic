@@ -5,11 +5,11 @@ export class AuthService {
   async validateApiKey(key: string): Promise<boolean> {
     if (!key) return false;
 
-    // Single query: UPDATE with RETURNING to combine SELECT + UPDATE
+    // Use RETURNING key (not id): legacy api_keys tables may omit the id column.
     const result = await this.db.prepare(`
       UPDATE api_keys SET last_used_at = ? WHERE key = ?
-      RETURNING id
-    `).bind(new Date().toISOString(), key).first<{ id: number }>();
+      RETURNING key
+    `).bind(new Date().toISOString(), key).first<{ key: string }>();
 
     return result !== null;
   }

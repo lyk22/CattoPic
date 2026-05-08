@@ -308,6 +308,42 @@ For detailed API documentation, see [API_EN.md](./API_EN.md).
 
 ## 7. FAQ
 
+### Q0: `validate-api-key` returns **500** / logs show `no such column: last_used_at`
+
+Your remote D1 `api_keys` table was created before `last_used_at` existed. Add the column once.
+
+**Option A — Cloudflare D1 Console (dashboard)**
+
+1. Open [Cloudflare Dashboard](https://dash.cloudflare.com) → **Storage & databases** → **D1 SQL Database**.
+2. Select the **same database** your Worker binds to (the name in `wrangler.toml` → `database_name`).
+3. Open the **Console** (SQL editor) tab.
+4. Run:
+
+```sql
+ALTER TABLE api_keys ADD COLUMN last_used_at TEXT;
+```
+
+5. If the console reports that the column already exists, no further action is needed.
+
+**Option B — Wrangler CLI**
+
+```bash
+cd worker
+pnpm wrangler d1 execute <YOUR_D1_DATABASE_NAME> --remote --file=migrations/0003_api_keys_last_used_at.sql
+```
+
+Or:
+
+```bash
+pnpm wrangler d1 execute <YOUR_D1_DATABASE_NAME> --remote --command "ALTER TABLE api_keys ADD COLUMN last_used_at TEXT;"
+```
+
+### Q0b: `validate-api-key` returns **500** / logs show `no such column: id`
+
+Some older `api_keys` tables were created **without** an `id` column (only `key`). Older Worker builds used `UPDATE ... RETURNING id`, which triggers this SQLite error.
+
+**Fix:** redeploy the Worker from current `main` (validation uses `RETURNING key` instead). Alternatively, align the table with `worker/schema.sql` (add an `id INTEGER PRIMARY KEY AUTOINCREMENT` column and backfill)—prefer redeploying the Worker.
+
 ### Q1: 401 Unauthorized Error
 
 Check if API Key has been added to database:

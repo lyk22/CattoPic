@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **D1 migration** `worker/migrations/0003_api_keys_last_used_at.sql` — run on remote D1 if `api_keys` was created without `last_used_at` (fixes `validate-api-key` returning 500 / `SQLITE_ERROR: no such column: last_used_at`).
 - **Optional Cloudflare Queues** - R2 file deletion no longer requires Cloudflare Queues. Set `USE_QUEUE = 'true'` in wrangler.toml to use async queue-based deletion, or `'false'` for synchronous deletion (no paid Queue feature required).
 - **ZIP Batch Upload** - Upload images in bulk via ZIP archive
   - Browser-side extraction using JSZip
@@ -35,6 +36,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- API Key validation no longer uses `RETURNING id` on `api_keys` updates (legacy D1 schemas without an `id` column failed with `no such column: id`); validation now uses `RETURNING key`.
+- Normalize Worker base URLs that mistakenly include a trailing `/api` path segment so requests hit `/api/...` instead of `/api/api/...` (which returned 404 for validation).
+- Align API base URL between `/api/config` and API Key validation: both honor `NEXT_PUBLIC_API_URL`, with server/build fallback `API_URL`; validation falls back to same-origin `/api/config` when the public env is unset at runtime.
+- Trim pasted API keys before validation and storage to avoid invisible whitespace mismatches.
 - Fix orientation detection for WebP and AVIF images - now correctly reads actual image dimensions instead of defaulting to 1920x1080.
 - Fix deleted images not disappearing from Upload/Manage pages without a hard refresh (TanStack Query cache + recent uploads list).
 - Fix Manage page Random API generator to resolve the real API base URL (via `/api/config`) instead of the placeholder `https://your-worker.workers.dev`.

@@ -1,4 +1,5 @@
 import { getApiKey } from "./auth";
+import { normalizeWorkerOrigin } from "./baseUrl";
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string>;
@@ -9,7 +10,7 @@ interface ConfigResponse {
   remotePatterns: string;
 }
 
-let BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+let BASE_URL = normalizeWorkerOrigin(process.env.NEXT_PUBLIC_API_URL || "");
 let initPromise: Promise<void> | null = null;
 
 async function initializeBaseUrl() {
@@ -17,7 +18,7 @@ async function initializeBaseUrl() {
     const response = await fetch("/api/config");
     const config: ConfigResponse = await response.json();
     if (config.apiUrl) {
-      BASE_URL = config.apiUrl;
+      BASE_URL = normalizeWorkerOrigin(config.apiUrl);
     }
   } catch (error) {
     console.error("Failed to fetch API config:", error);

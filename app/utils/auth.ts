@@ -1,6 +1,22 @@
+import { normalizeWorkerOrigin } from "./baseUrl";
+
 const API_KEY_KEY = "cattopic_api_key";
 export const API_KEY_CHANGE_EVENT = "cattopic_api_key_change";
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+/** Same-origin `/api/config` (built at deploy time) may carry apiUrl when only API_URL is set server-side. */
+async function resolveClientApiBaseUrl(): Promise<string> {
+  const fromEnv = normalizeWorkerOrigin(process.env.NEXT_PUBLIC_API_URL || "");
+  if (fromEnv) return fromEnv;
+
+  try {
+    const response = await fetch("/api/config");
+    if (!response.ok) return "";
+    const data = (await response.json()) as { apiUrl?: string };
+    return normalizeWorkerOrigin(data.apiUrl || "");
+  } catch {
+    return "";
+  }
+}
 export const getApiKey = (): string | null => {
   if (typeof window !== "undefined") {
     return localStorage.getItem(API_KEY_KEY);
@@ -23,18 +39,30 @@ export const removeApiKey = (): void => {
 };
 
 export const validateApiKey = async (apiKey: string): Promise<boolean> => {
+  const trimmedKey = apiKey.trim();
+  if (!trimmedKey) return false;
+
   try {
-    const response = await fetch(`${BASE_URL}/api/validate-api-key`, {
+    const base = await resolveClientApiBaseUrl();
+    if (!base) {
+      console.error(
+        "[CattoPic] API base URL is empty. Set NEXT_PUBLIC_API_URL or API_URL in Cloudflare Pages (Production), then redeploy."
+      );
+      return false;
+    }
+
+    const response = await fetch(`${base}/api/validate-api-key`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${trimmedKey}`,
       },
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("API Key validation failed:", {
+        url: `${base}/api/validate-api-key`,
         status: response.status,
         statusText: response.statusText,
         responseText: errorText
@@ -42,7 +70,7 @@ export const validateApiKey = async (apiKey: string): Promise<boolean> => {
       return false;
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as { valid?: boolean };
     return data.valid === true;
   } catch (error) {
     console.error("API Key validation error:", error);

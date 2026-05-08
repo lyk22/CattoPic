@@ -20,6 +20,7 @@
 
 ### 变更
 
+- 移除根布局底部「Create By 猫猫博客」署名链接。
 - 当 WebP/AVIF 文件未生成/缺失时（例如超过 10MB 的上传），改用 Cloudflare Transform Images URL（`/cdn-cgi/image/...`）作为兜底输出方式。
 - `/api/random` 改为 302 重定向到实际图片 URL（不再由 Worker 代理回源返回图片字节，Transform-URL 场景更稳定）。
 - 关闭 Next.js 图片优化（图片已使用 Transform-URL 输出，无需再二次优化）。
@@ -37,6 +38,7 @@
 
 ### 修复
 
+- 单图上传：若在已写入 R2 之后 D1 保存元数据失败，会删除本次已上传的 R2 对象，避免出现「前端提示失败但桶里仍有文件」；上传失败时返回 HTTP 500 并带上底层错误信息便于排查。
 - API Key 校验更新 `api_keys` 时不再使用 `RETURNING id`（旧版 D1 表若没有 `id` 列会报错 `no such column: id`），改为 `RETURNING key`。
 - 规范化误写成带后缀路径 `/api` 的 Worker 根地址，避免请求打成 `/api/api/...`（此前会导致校验接口 404）。
 - 统一 `/api/config` 与 API Key 校验使用的后端地址：两者均读取 `NEXT_PUBLIC_API_URL`，并支持构建期回退 `API_URL`；当客户端未内联公网变量时，校验会回退请求同源 `/api/config`。

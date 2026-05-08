@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 import type { Env, ImageMetadata, UploadResult } from '../types';
+import type { ImagePaths } from '../types/queue';
 import { StorageService } from '../services/storage';
 import { MetadataService } from '../services/metadata';
 import { CacheService } from '../services/cache';
@@ -19,6 +20,11 @@ const CLOUDFLARE_IMAGES_MAX_BYTES = 10 * 1024 * 1024;
  * Used by frontend concurrent upload for per-file progress tracking
  */
 export async function uploadSingleHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
+  const storage = new StorageService(c.env.R2_BUCKET);
+  /** If D1 save fails after R2 writes, delete these keys to avoid orphaned objects. */
+  let r2PathsForRollback: ImagePaths | null = null;
+  let dbCommitted = false;
+
   try {
     // Check Content-Length header first to fail fast
     const contentLength = c.req.header('Content-Length');
@@ -56,7 +62,6 @@ export async function uploadSingleHandler(c: Context<{ Bindings: Env }>): Promis
     console.log(`Processing upload: ${file.name}, size: ${file.size} bytes`);
 
     const tags = parseTags(tagsString);
-    const storage = new StorageService(c.env.R2_BUCKET);
     const metadata = new MetadataService(c.env.DB);
     const compression = c.env.IMAGES ? new CompressionService(c.env.IMAGES) : null;
 
@@ -145,6 +150,12 @@ export async function uploadSingleHandler(c: Context<{ Bindings: Env }>): Promis
       if (wantsAvif) paths.avif = paths.original;
     }
 
+    r2PathsForRollback = {
+      original: paths.original,
+      ...(paths.webp ? { webp: paths.webp } : {}),
+      ...(paths.avif ? { avif: paths.avif } : {}),
+    };
+
     // Calculate expiry time
     let expiryTime: string | undefined;
     if (expiryMinutes > 0) {
@@ -172,6 +183,8 @@ export async function uploadSingleHandler(c: Context<{ Bindings: Env }>): Promis
     };
 
     await metadata.saveImage(imageMetadata);
+    dbCommitted = true;
+    r2PathsForRollback = null;
 
     // Build result
     const baseUrl = c.env.R2_PUBLIC_URL;
@@ -206,7 +219,16 @@ export async function uploadSingleHandler(c: Context<{ Bindings: Env }>): Promis
 
     return successResponse({ result });
   } catch (err) {
+    if (!dbCommitted && r2PathsForRollback) {
+      try {
+        await storage.deleteImageFiles(r2PathsForRollback);
+      } catch (rollbackErr) {
+        console.error('R2 rollback after upload failure:', rollbackErr);
+      }
+    }
     console.error('Single upload error:', err);
-    return errorResponse('Upload failed');
+    const message =
+      err instanceof Error && err.message ? err.message : 'Upload failed';
+    return errorResponse(message, 500);
   }
 }

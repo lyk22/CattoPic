@@ -54,18 +54,6 @@ export default function RootLayout({
         <QueryProvider>
           {children}
         </QueryProvider>
-
-        {/* 页脚 */}
-        <div className="max-w-7xl mx-auto px-6 mt-8 text-center text-gray-600 dark:text-gray-400">
-          Create By{" "}
-          <a
-            href="https://catcat.blog/"
-            target="_blank"
-            className="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
-          >
-            猫猫博客
-          </a>
-        </div>
       </body>
     </html>
   );

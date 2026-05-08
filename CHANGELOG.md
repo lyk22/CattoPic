@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Remove global footer attribution link (“Create By 猫猫博客”) from the root layout.
 - Use Cloudflare Transform Images URL (`/cdn-cgi/image/...`) as a fallback WebP/AVIF delivery method when stored variants are missing (e.g. uploads over 10MB).
 - `/api/random` now redirects (302) to the selected image URL instead of proxying the image bytes (more reliable for transformed variants).
 - Disable Next.js image optimization since images are already delivered as transformed URLs.
@@ -37,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Single-file upload: if D1 metadata save fails after R2 writes, delete the uploaded R2 objects so the UI error does not leave orphan files; upload errors now return HTTP 500 with the underlying message for easier diagnosis.
 - API Key validation no longer uses `RETURNING id` on `api_keys` updates (legacy D1 schemas without an `id` column failed with `no such column: id`); validation now uses `RETURNING key`.
 - Normalize Worker base URLs that mistakenly include a trailing `/api` path segment so requests hit `/api/...` instead of `/api/api/...` (which returned 404 for validation).
 - Align API base URL between `/api/config` and API Key validation: both honor `NEXT_PUBLIC_API_URL`, with server/build fallback `API_URL`; validation falls back to same-origin `/api/config` when the public env is unset at runtime.

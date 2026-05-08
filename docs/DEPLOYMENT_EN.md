@@ -359,6 +359,14 @@ Or:
 pnpm wrangler d1 execute <YOUR_D1_DATABASE_NAME> --remote --command "ALTER TABLE api_keys ADD COLUMN last_used_at TEXT;"
 ```
 
+### Q0a: Upload UI shows failure but files appear in R2
+
+The Worker writes **R2 first**, then **D1** (`images`, `tags`, `image_tags`). If D1 fails (common causes: schema drift vs `worker/schema.sql`, missing tables/columns, or foreign-key issues), the API returns an error even though objects already landed in the bucket.
+
+**Check:** Worker logs for `D1_ERROR` during `POST /api/upload/single`. Align remote D1 with `worker/schema.sql` (and migrations under `worker/migrations/`).
+
+**Note:** Current Worker builds roll back R2 uploads when D1 save fails after storage writes, so new deployments should not accumulate orphans from this path.
+
 ### Q0b: `validate-api-key` returns **500** / logs show `no such column: id`
 
 Some older `api_keys` tables were created **without** an `id` column (only `key`). Older Worker builds used `UPDATE ... RETURNING id`, which triggers this SQLite error.

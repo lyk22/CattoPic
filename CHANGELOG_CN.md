@@ -8,6 +8,7 @@
 
 ### 新增
 
+- **Worker CI 部署** — `worker/scripts/ci-write-wrangler.sh` 与 `pnpm run deploy:ci`，从 `WRANGLER_TOML_CONTENT` / `WRANGLER_TOML` 生成 `wrangler.toml`，便于 Cloudflare Workers Builds 等在仓库不提交 `worker/wrangler.toml` 的情况下部署。
 - **D1 迁移** `worker/migrations/0003_api_keys_last_used_at.sql` — 若远程库里的 `api_keys` 表缺少 `last_used_at` 列可执行（避免出现 `validate-api-key` 返回 500 / `SQLITE_ERROR: no such column: last_used_at`）。
 - **Cloudflare Queues 可选化** - R2 文件删除不再强制依赖 Cloudflare Queues。在 wrangler.toml 中设置 `USE_QUEUE = 'true'` 使用异步队列删除，设置为 `'false'` 则使用同步删除（无需付费 Queue 功能）。
 - **ZIP 批量上传** - 支持通过 ZIP 压缩包批量上传图片

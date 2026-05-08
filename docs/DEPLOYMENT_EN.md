@@ -195,8 +195,29 @@ curl -X POST \
   https://cattopic-worker.<your-subdomain>.workers.dev/api/validate-api-key
 
 # Expected response
-{"success":true,"data":{"valid":true}}
+{"success":true,"valid":true}
 ```
+
+### 2.4 Deploy from Cloudflare Workers Builds (Git)
+
+`worker/wrangler.toml` is **gitignored** (secrets). A fresh clone has **no** Wrangler config, so a bare `npx wrangler deploy` fails with **Missing entry-point to Worker script**.
+
+Configure the Cloudflare **Workers** project that builds from Git:
+
+| Setting | Value |
+|---------|--------|
+| **Root directory** | `worker` |
+| **Build command** | `pnpm install --frozen-lockfile` |
+| **Deploy command** | `pnpm run deploy:ci` |
+
+Add an **encrypted** environment variable for the build (same content as your local `wrangler.toml`):
+
+| Variable | Description |
+|----------|---------------|
+| `WRANGLER_TOML_CONTENT` | Preferred (matches GitHub Actions). Full file body, multiline. |
+| `WRANGLER_TOML` | Alternative name; used if `WRANGLER_TOML_CONTENT` is unset. |
+
+The script `worker/scripts/ci-write-wrangler.sh` writes `worker/wrangler.toml` before `wrangler deploy`.
 
 ---
 

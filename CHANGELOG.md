@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Worker CI deploy** — `worker/scripts/ci-write-wrangler.sh` and `pnpm run deploy:ci` generate `wrangler.toml` from `WRANGLER_TOML_CONTENT` / `WRANGLER_TOML` so Cloudflare Workers Builds (and other CI) work while `worker/wrangler.toml` stays gitignored.
 - **D1 migration** `worker/migrations/0003_api_keys_last_used_at.sql` — run on remote D1 if `api_keys` was created without `last_used_at` (fixes `validate-api-key` returning 500 / `SQLITE_ERROR: no such column: last_used_at`).
 - **Optional Cloudflare Queues** - R2 file deletion no longer requires Cloudflare Queues. Set `USE_QUEUE = 'true'` in wrangler.toml to use async queue-based deletion, or `'false'` for synchronous deletion (no paid Queue feature required).
 - **ZIP Batch Upload** - Upload images in bulk via ZIP archive

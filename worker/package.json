@@ -7,6 +7,8 @@
     "dev": "wrangler dev",
     "build": "wrangler deploy",
     "deploy": "wrangler deploy",
+    "wrangler:write-config": "bash scripts/ci-write-wrangler.sh",
+    "deploy:ci": "pnpm run wrangler:write-config && wrangler deploy",
     "tail": "wrangler tail"
   },
   "keywords": [

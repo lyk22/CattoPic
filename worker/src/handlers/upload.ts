@@ -7,7 +7,13 @@ import { CacheService } from '../services/cache';
 import { ImageProcessor } from '../services/imageProcessor';
 import { CompressionService, parseCompressionOptions } from '../services/compression';
 import { successResponse, errorResponse } from '../utils/response';
-import { generateImageId, parseTags, parseNumber, tagsToStoragePathSegments } from '../utils/validation';
+import {
+  generateImageId,
+  parseTags,
+  parseNumber,
+  tagsToStoragePathSegments,
+  parseR2PublicBaseUrl,
+} from '../utils/validation';
 import { buildImageUrls } from '../utils/imageTransform';
 
 // Maximum file size: 70MB (Cloudflare Images Binding limit)
@@ -192,26 +198,11 @@ export async function uploadSingleHandler(c: Context<{ Bindings: Env }>): Promis
     dbCommitted = true;
     r2PathsForRollback = null;
 
-    // Build result — invalid R2_PUBLIC_URL throws "Failed to parse URL" from URL()
-    const baseUrl = (c.env.R2_PUBLIC_URL ?? '').trim();
-    if (
-      !baseUrl
-      || baseUrl.includes('<')
-      || !/^https:\/\//i.test(baseUrl)
-    ) {
-      return errorResponse(
-        'R2_PUBLIC_URL must be set to a valid HTTPS base URL for public R2 access (Worker vars / wrangler.toml [vars]).',
-        500
-      );
+    const r2Base = parseR2PublicBaseUrl(c.env.R2_PUBLIC_URL);
+    if (!r2Base.ok) {
+      return errorResponse(r2Base.message, 500);
     }
-    try {
-      void new URL(baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
-    } catch {
-      return errorResponse(
-        'R2_PUBLIC_URL is not a parseable URL; use e.g. https://pub-xxx.r2.dev or your R2 custom domain.',
-        500
-      );
-    }
+    const baseUrl = r2Base.baseUrl;
 
     const urls = buildImageUrls({
       baseUrl,

@@ -35,6 +35,36 @@ export function parseTags(tagsString: string | null): string[] {
     .filter(t => t.length > 0);
 }
 
+export type R2PublicBaseUrlResult =
+  | { ok: true; baseUrl: string }
+  | { ok: false; message: string };
+
+/** Trim + validate Worker `R2_PUBLIC_URL` (wrangler [vars] / dashboard). */
+export function parseR2PublicBaseUrl(raw: string | undefined): R2PublicBaseUrlResult {
+  const baseUrl = (raw ?? '').trim();
+  if (
+    !baseUrl
+    || baseUrl.includes('<')
+    || !/^https:\/\//i.test(baseUrl)
+  ) {
+    return {
+      ok: false,
+      message:
+        'R2_PUBLIC_URL must be set to a valid HTTPS base URL for public R2 access (Worker vars / wrangler.toml [vars]).',
+    };
+  }
+  try {
+    void new URL(baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+  } catch {
+    return {
+      ok: false,
+      message:
+        'R2_PUBLIC_URL is not a parseable URL; use e.g. https://pub-xxx.r2.dev or your R2 custom domain.',
+    };
+  }
+  return { ok: true, baseUrl };
+}
+
 /** Max nested folder segments under orientation (R2 key length stays bounded). */
 const MAX_TAG_PATH_SEGMENTS = 12;
 

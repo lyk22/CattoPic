@@ -8,6 +8,7 @@ import TagSelector from './TagSelector';
 import OrientationSelector from './OrientationSelector';
 import FormatSelector from './FormatSelector';
 import LinkOutput from './LinkOutput';
+import { normalizeWorkerOrigin } from '../../utils/baseUrl';
 
 interface RandomApiModalProps {
   isOpen: boolean;
@@ -25,10 +26,12 @@ export default function RandomApiModal({ isOpen, onClose }: RandomApiModalProps)
   const [excludeTags, setExcludeTags] = useState<string[]>([]);
   const [orientation, setOrientation] = useState<Orientation>('auto');
   const [format, setFormat] = useState<Format>('auto');
-  const [baseUrl, setBaseUrl] = useState<string>(
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.NEXT_PUBLIC_WORKER_URL ||
-    ''
+  const [baseUrl, setBaseUrl] = useState<string>(() =>
+    normalizeWorkerOrigin(
+      process.env.NEXT_PUBLIC_API_URL ||
+        process.env.NEXT_PUBLIC_WORKER_URL ||
+        ''
+    )
   );
 
   useEffect(() => {
@@ -42,7 +45,7 @@ export default function RandomApiModal({ isOpen, onClose }: RandomApiModalProps)
         if (!res.ok) return;
         const config = await res.json() as { apiUrl?: string };
         if (!cancelled && config.apiUrl) {
-          setBaseUrl(config.apiUrl);
+          setBaseUrl(normalizeWorkerOrigin(config.apiUrl));
         }
       } catch {
       }
@@ -57,7 +60,8 @@ export default function RandomApiModal({ isOpen, onClose }: RandomApiModalProps)
 
   // 构建 URL
   const generatedUrl = useMemo(() => {
-    const resolvedBase = baseUrl || 'https://your-worker.workers.dev';
+    const resolvedBase = baseUrl.trim();
+    if (!resolvedBase) return '';
     const url = new URL('/api/random', resolvedBase);
 
     if (includeTags.length > 0) {
@@ -184,8 +188,20 @@ export default function RandomApiModal({ isOpen, onClose }: RandomApiModalProps)
                     onChange={setFormat}
                   />
 
-                  {/* 链接输出 */}
-                  <LinkOutput url={generatedUrl} />
+                  {!generatedUrl ? (
+                    <div
+                      role="status"
+                      className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100"
+                    >
+                      未解析到 Worker 根地址。请在部署环境配置服务端变量{' '}
+                      <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/50">API_URL</code>{' '}
+                      （推荐，指向你的 Worker 自定义域名，无需重新打包前端）或{' '}
+                      <code className="rounded bg-amber-100/80 px-1 dark:bg-amber-900/50">NEXT_PUBLIC_API_URL</code>
+                      ，保存后刷新本页再打开此窗口。
+                    </div>
+                  ) : (
+                    <LinkOutput url={generatedUrl} />
+                  )}
                 </>
               )}
             </div>

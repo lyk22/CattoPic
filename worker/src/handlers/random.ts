@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import type { Env } from '../types';
 import { MetadataService } from '../services/metadata';
 import { errorResponse } from '../utils/response';
-import { parseTags, isMobileDevice, getBestFormat } from '../utils/validation';
+import { parseTags, isMobileDevice, getBestFormat, parseR2PublicBaseUrl } from '../utils/validation';
 import { buildImageUrls } from '../utils/imageTransform';
 
 // GET /api/random - Get random image (PUBLIC - no auth required)
@@ -41,9 +41,12 @@ export async function randomHandler(c: Context<{ Bindings: Env }>): Promise<Resp
       return errorResponse('No images found matching criteria', 404);
     }
 
-    const baseUrl = c.env.R2_PUBLIC_URL;
+    const r2Base = parseR2PublicBaseUrl(c.env.R2_PUBLIC_URL);
+    if (!r2Base.ok) {
+      return errorResponse(r2Base.message, 503);
+    }
     const urls = buildImageUrls({
-      baseUrl,
+      baseUrl: r2Base.baseUrl,
       image,
       options: {
         generateWebp: !!image.paths.webp,

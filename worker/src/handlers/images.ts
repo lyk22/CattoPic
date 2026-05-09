@@ -4,7 +4,15 @@ import { MetadataService } from '../services/metadata';
 import { StorageService } from '../services/storage';
 import { CacheService, CacheKeys, CACHE_TTL } from '../services/cache';
 import { successResponse, errorResponse, notFoundResponse } from '../utils/response';
-import { parseNumber, validateOrientation, validateImageListFormat, parseTags, sanitizeTagName, isValidUUID } from '../utils/validation';
+import {
+  parseNumber,
+  validateOrientation,
+  validateImageListFormat,
+  parseTags,
+  sanitizeTagName,
+  isValidUUID,
+  parseR2PublicBaseUrl,
+} from '../utils/validation';
 import { buildImageUrls } from '../utils/imageTransform';
 
 const MAX_IMAGES_PAGE_SIZE = 100;
@@ -25,6 +33,12 @@ export async function imagesHandler(c: Context<{ Bindings: Env }>): Promise<Resp
     const orientation = validateOrientation(url.searchParams.get('orientation'));
     const format = validateImageListFormat(url.searchParams.get('format')) || 'all';
 
+    const r2Base = parseR2PublicBaseUrl(c.env.R2_PUBLIC_URL);
+    if (!r2Base.ok) {
+      return errorResponse(r2Base.message, 500);
+    }
+    const baseUrl = r2Base.baseUrl;
+
     const cache = new CacheService(c.env.CACHE_KV);
     const cacheKey = CacheKeys.imagesList(page, limit, tag, orientation, format);
 
@@ -43,8 +57,6 @@ export async function imagesHandler(c: Context<{ Bindings: Env }>): Promise<Resp
 
     const metadata = new MetadataService(c.env.DB);
     const { images, total } = await metadata.getImages({ page, limit, tag, orientation, format });
-
-    const baseUrl = c.env.R2_PUBLIC_URL;
 
     // Add full URLs to images
     const imagesWithUrls = images.map(img => ({
@@ -89,6 +101,11 @@ export async function imageDetailHandler(c: Context<{ Bindings: Env }>): Promise
       return errorResponse('无效的图片ID');
     }
 
+    const r2DetailBase = parseR2PublicBaseUrl(c.env.R2_PUBLIC_URL);
+    if (!r2DetailBase.ok) {
+      return errorResponse(r2DetailBase.message, 500);
+    }
+
     const cache = new CacheService(c.env.CACHE_KV);
     const cacheKey = CacheKeys.imageDetail(id);
 
@@ -108,14 +125,12 @@ export async function imageDetailHandler(c: Context<{ Bindings: Env }>): Promise
       return notFoundResponse('图片不存在');
     }
 
-    const baseUrl = c.env.R2_PUBLIC_URL;
-
     const responseData = {
       image: {
         ...image,
         urls: {
           ...buildImageUrls({
-            baseUrl,
+            baseUrl: r2DetailBase.baseUrl,
             image,
             options: {
               generateWebp: !!image.paths.webp,
@@ -191,14 +206,17 @@ export async function updateImageHandler(c: Context<{ Bindings: Env }>): Promise
       await cache.invalidateTagsList();
     }
 
-    const baseUrl = c.env.R2_PUBLIC_URL;
+    const r2PutBase = parseR2PublicBaseUrl(c.env.R2_PUBLIC_URL);
+    if (!r2PutBase.ok) {
+      return errorResponse(r2PutBase.message, 500);
+    }
 
     return successResponse({
       image: {
         ...updated,
         urls: {
           ...buildImageUrls({
-            baseUrl,
+            baseUrl: r2PutBase.baseUrl,
             image: updated,
             options: {
               generateWebp: !!updated.paths.webp,

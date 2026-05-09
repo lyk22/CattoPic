@@ -7,7 +7,7 @@ import { CacheService } from '../services/cache';
 import { ImageProcessor } from '../services/imageProcessor';
 import { CompressionService, parseCompressionOptions } from '../services/compression';
 import { successResponse, errorResponse } from '../utils/response';
-import { generateImageId, parseTags, parseNumber } from '../utils/validation';
+import { generateImageId, parseTags, parseNumber, tagsToStoragePathSegments } from '../utils/validation';
 import { buildImageUrls } from '../utils/imageTransform';
 
 // Maximum file size: 70MB (Cloudflare Images Binding limit)
@@ -62,6 +62,7 @@ export async function uploadSingleHandler(c: Context<{ Bindings: Env }>): Promis
     console.log(`Processing upload: ${file.name}, size: ${file.size} bytes`);
 
     const tags = parseTags(tagsString);
+    const tagPathSegments = tagsToStoragePathSegments(tags);
     const metadata = new MetadataService(c.env.DB);
     const compression = c.env.IMAGES ? new CompressionService(c.env.IMAGES) : null;
 
@@ -77,7 +78,12 @@ export async function uploadSingleHandler(c: Context<{ Bindings: Env }>): Promis
 
     // Generate unique ID and paths
     const id = generateImageId();
-    const generatedPaths = StorageService.generatePaths(id, imageInfo.orientation, imageInfo.format);
+    const generatedPaths = StorageService.generatePaths(
+      id,
+      imageInfo.orientation,
+      imageInfo.format,
+      tagPathSegments.length > 0 ? tagPathSegments : undefined
+    );
     const paths = { ...generatedPaths, webp: '', avif: '' };
     const contentType = ImageProcessor.getContentType(imageInfo.format);
 

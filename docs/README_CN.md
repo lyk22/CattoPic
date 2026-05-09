@@ -174,6 +174,10 @@ id = "<你的KV-ID>"
 
 ### 4. 部署 Worker
 
+**长期避免「缺少入口 / Missing entry-point」：** 按上文填好 `wrangler.toml` 后，**把 `worker/wrangler.toml` 提交进 Git**。干净克隆和 CI 都会有配置文件；D1/KV/R2 的 ID 是资源标识，不是 API Token，不要把真正的密钥写进该文件。
+
+若使用 **Cloudflare Workers 自带的 Git 构建**：根目录选 `worker`，安装依赖后用 `pnpm exec wrangler deploy` 即可。只有在**不能**把 `wrangler.toml` 放进仓库时（例如公开 Fork），才用环境变量 `WRANGLER_TOML` / `WRANGLER_TOML_CONTENT` + `pnpm run deploy:ci`。
+
 **方式 A：手动部署**
 
 ```bash
@@ -194,7 +198,7 @@ pnpm wrangler deploy
 |--------|------|
 | `CLOUDFLARE_API_TOKEN` | 你的 API Token |
 | `CLOUDFLARE_ACCOUNT_ID` | 你的 Account ID |
-| `WRANGLER_TOML` | 完整的 `wrangler.toml` 文件内容 |
+| `WRANGLER_TOML` | 完整的 `wrangler.toml` 文件内容（仅在不把 `worker/wrangler.toml` 提交到仓库时需要） |
 
 4. **触发方式**：推送到 main 分支的 `worker/**` 目录，或在 Actions 标签页手动触发
 

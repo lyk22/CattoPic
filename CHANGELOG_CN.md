@@ -8,7 +8,8 @@
 
 ### 新增
 
-- **Worker CI 部署** — `worker/scripts/ci-write-wrangler.sh` 与 `pnpm run deploy:ci`，从 `WRANGLER_TOML_CONTENT` / `WRANGLER_TOML` 生成 `wrangler.toml`，便于 Cloudflare Workers Builds 等在仓库不提交 `worker/wrangler.toml` 的情况下部署。
+- **按标签名划分 R2 目录** — 上传时若填写标签，对象键会落在对应标签名构成的多级前缀下（同名去重后排序），例如 `original/landscape/假期/图片id.jpg`；无标签时仍为原先的扁平路径。
+- **Worker CI 部署（可选）** — `worker/scripts/ci-write-wrangler.sh` 与 `pnpm run deploy:ci`，在未提交 `wrangler.toml` 时由 `WRANGLER_TOML_CONTENT` / `WRANGLER_TOML` 生成配置（例如公开 Fork）。
 - **D1 迁移** `worker/migrations/0003_api_keys_last_used_at.sql` — 若远程库里的 `api_keys` 表缺少 `last_used_at` 列可执行（避免出现 `validate-api-key` 返回 500 / `SQLITE_ERROR: no such column: last_used_at`）。
 - **Cloudflare Queues 可选化** - R2 文件删除不再强制依赖 Cloudflare Queues。在 wrangler.toml 中设置 `USE_QUEUE = 'true'` 使用异步队列删除，设置为 `'false'` 则使用同步删除（无需付费 Queue 功能）。
 - **ZIP 批量上传** - 支持通过 ZIP 压缩包批量上传图片
@@ -20,6 +21,7 @@
 
 ### 变更
 
+- **Worker** — 不再默认忽略 `worker/wrangler.toml`；将填写完整的 `wrangler.toml` 纳入版本控制后，干净克隆与 Cloudflare Workers Git 构建可直接获得入口配置，无需在 CI 里注入整份文件。
 - 上传表单偏好（压缩、过期时间、标签）通过 `app/utils/uploadCompressionPrefs.ts` 写入 `localStorage`，记录最后一次选择；单文件与 ZIP 共用，直至再次修改。
 - 移除根布局底部「Create By 猫猫博客」署名链接。
 - 当 WebP/AVIF 文件未生成/缺失时（例如超过 10MB 的上传），改用 Cloudflare Transform Images URL（`/cdn-cgi/image/...`）作为兜底输出方式。

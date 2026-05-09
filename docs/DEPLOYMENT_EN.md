@@ -200,24 +200,19 @@ curl -X POST \
 
 ### 2.4 Deploy from Cloudflare Workers Builds (Git)
 
-`worker/wrangler.toml` is **gitignored** (secrets). A fresh clone has **no** Wrangler config, so a bare `npx wrangler deploy` fails with **Missing entry-point to Worker script**.
+**Why “Missing entry-point” keeps coming back:** if `worker/wrangler.toml` is not in the repository, every clean clone and every CI run that does not inject a config has no `main` entry for Wrangler—so `npx wrangler deploy` fails until something writes that file.
 
-Configure the Cloudflare **Workers** project that builds from Git:
+**Permanent fix (recommended):** after you fill in IDs from section 1.7, **commit** `worker/wrangler.toml` to Git. Resource IDs (D1 database id, KV namespace id, R2 bucket name) identify your Cloudflare resources; they are not bearer tokens. Do **not** put API keys or other secrets in this file—use Worker secrets / dashboard for those.
+
+Then configure the Cloudflare **Workers** project that builds from Git:
 
 | Setting | Value |
 |---------|--------|
 | **Root directory** | `worker` |
 | **Build command** | `pnpm install --frozen-lockfile` |
-| **Deploy command** | `pnpm run deploy:ci` |
+| **Deploy command** | `pnpm exec wrangler deploy` |
 
-Add an **encrypted** environment variable for the build (same content as your local `wrangler.toml`):
-
-| Variable | Description |
-|----------|---------------|
-| `WRANGLER_TOML_CONTENT` | Preferred (matches GitHub Actions). Full file body, multiline. |
-| `WRANGLER_TOML` | Alternative name; used if `WRANGLER_TOML_CONTENT` is unset. |
-
-The script `worker/scripts/ci-write-wrangler.sh` writes `worker/wrangler.toml` before `wrangler deploy`.
+**Optional (forks / cannot commit config):** keep `wrangler.toml` out of the repo and use `pnpm run deploy:ci` with an encrypted variable **`WRANGLER_TOML_CONTENT`** or **`WRANGLER_TOML`** (full file body). The script `worker/scripts/ci-write-wrangler.sh` writes `worker/wrangler.toml` before deploy.
 
 ---
 

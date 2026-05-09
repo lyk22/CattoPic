@@ -38,17 +38,27 @@ export class StorageService {
     await this.deleteMany(keys);
   }
 
-  // Generate storage paths for an image
-  static generatePaths(id: string, orientation: 'landscape' | 'portrait', format: string): {
+  /**
+   * Generate storage paths for an image.
+   * When `tagSegments` is non-empty, keys are nested under those folder names (after orientation).
+   */
+  static generatePaths(
+    id: string,
+    orientation: 'landscape' | 'portrait',
+    format: string,
+    tagSegments?: readonly string[]
+  ): {
     original: string;
     webp: string;
     avif: string;
   } {
     const ext = format === 'gif' ? 'gif' : format;
+    const prefix =
+      tagSegments && tagSegments.length > 0 ? `${tagSegments.join('/')}/` : '';
     return {
-      original: `original/${orientation}/${id}.${ext}`,
-      webp: `${orientation}/webp/${id}.webp`,
-      avif: `${orientation}/avif/${id}.avif`
+      original: `original/${orientation}/${prefix}${id}.${ext}`,
+      webp: `${orientation}/webp/${prefix}${id}.webp`,
+      avif: `${orientation}/avif/${prefix}${id}.avif`
     };
   }
 }

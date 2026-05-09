@@ -35,6 +35,25 @@ export function parseTags(tagsString: string | null): string[] {
     .filter(t => t.length > 0);
 }
 
+/** Max nested folder segments under orientation (R2 key length stays bounded). */
+const MAX_TAG_PATH_SEGMENTS = 12;
+
+/**
+ * Unique tag names sorted for stable R2 prefixes when multiple tags are used.
+ * Used as path segments: original/{orientation}/{seg1}/{seg2}/…/{id}.ext
+ */
+export function tagsToStoragePathSegments(tags: string[]): string[] {
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const t of tags) {
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    unique.push(t);
+  }
+  unique.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+  return unique.slice(0, MAX_TAG_PATH_SEGMENTS);
+}
+
 export function parseNumber(value: string | null, defaultValue: number): number {
   if (!value) return defaultValue;
   const num = parseInt(value, 10);

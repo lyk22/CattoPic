@@ -1,6 +1,8 @@
 # CattoPic Worker Configuration Template
-# Copy this file to wrangler.toml and fill in your values
-# cp wrangler.example.toml wrangler.toml
+# Copy this file to wrangler.toml and fill in your values:
+#   cp wrangler.example.toml wrangler.toml
+# Commit the filled worker/wrangler.toml so CI / fresh clones always have an entry
+# point (D1/KV/R2 IDs identify resources; keep API tokens out of this file).
 
 name = 'cattopic-worker'
 main = 'src/index.ts'

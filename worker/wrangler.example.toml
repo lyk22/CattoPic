@@ -11,7 +11,7 @@ compatibility_flags = ['nodejs_compat']
 
 [vars]
 ENVIRONMENT = 'production'
-# Your R2 bucket public URL (custom domain or workers.dev URL)
+# Your R2 bucket public URL (custom domain or pub-*.r2.dev) — use your own host; do not commit private domains in public forks
 R2_PUBLIC_URL = '<your-r2-public-url>'
 # Set to 'true' to enable Cloudflare Queues for async R2 deletion
 # Set to 'false' or remove to use synchronous deletion (no Queue required)

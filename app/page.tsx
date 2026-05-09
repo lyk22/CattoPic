@@ -17,8 +17,30 @@ import { useDeleteImage, useInvalidateImages } from './hooks/useImages'
 import { useUploadState } from './hooks/useUploadState'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { queryKeys } from './lib/queryKeys'
+import {
+  loadUploadSessionPrefs,
+  persistUploadSessionPrefs,
+  type UploadOutputFormat,
+  type UploadSessionPrefs,
+} from './utils/uploadCompressionPrefs'
 
-const DEFAULT_MAX_UPLOAD_COUNT = 50;
+const DEFAULT_MAX_UPLOAD_COUNT = 50
+
+const UPLOAD_INIT_DEFAULT: UploadSessionPrefs = {
+  compressionQuality: 90,
+  compressionMaxWidth: 0,
+  preserveAnimation: true,
+  outputFormat: 'both',
+  expiryMinutes: 0,
+  selectedTags: [],
+}
+
+let uploadInitCache: UploadSessionPrefs | null = null
+function uploadInitOnce(): UploadSessionPrefs {
+  if (typeof window === 'undefined') return UPLOAD_INIT_DEFAULT
+  if (!uploadInitCache) uploadInitCache = loadUploadSessionPrefs()
+  return uploadInitCache
+}
 
 export default function Home() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
@@ -29,8 +51,8 @@ export default function Home() {
   const [isKeyVerified, setIsKeyVerified] = useState(false)
   const [maxUploadCount, setMaxUploadCount] = useState(DEFAULT_MAX_UPLOAD_COUNT)
   const [fileDetails, setFileDetails] = useState<{ id: string, file: File }[]>([])
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [expiryMinutes, setExpiryMinutes] = useState<number>(0)
+  const [selectedTags, setSelectedTags] = useState(() => uploadInitOnce().selectedTags)
+  const [expiryMinutes, setExpiryMinutes] = useState(() => uploadInitOnce().expiryMinutes)
 
   // TanStack Query cache invalidation hook
   const invalidateImages = useInvalidateImages()
@@ -44,11 +66,29 @@ export default function Home() {
   // 判断是否正在上传
   const isUploading = phase === 'uploading' || phase === 'processing'
 
-  // 压缩设置状态
-  const [compressionQuality, setCompressionQuality] = useState(90)
-  const [compressionMaxWidth, setCompressionMaxWidth] = useState(0)
-  const [preserveAnimation, setPreserveAnimation] = useState(true)
-  const [outputFormat, setOutputFormat] = useState<'webp' | 'avif' | 'both'>('both')
+  // 压缩设置：沿用上次选择（localStorage），单文件与 ZIP 共用
+  const [compressionQuality, setCompressionQuality] = useState(() => uploadInitOnce().compressionQuality)
+  const [compressionMaxWidth, setCompressionMaxWidth] = useState(() => uploadInitOnce().compressionMaxWidth)
+  const [preserveAnimation, setPreserveAnimation] = useState(() => uploadInitOnce().preserveAnimation)
+  const [outputFormat, setOutputFormat] = useState<UploadOutputFormat>(() => uploadInitOnce().outputFormat)
+
+  useEffect(() => {
+    persistUploadSessionPrefs({
+      compressionQuality,
+      compressionMaxWidth,
+      preserveAnimation,
+      outputFormat,
+      expiryMinutes,
+      selectedTags,
+    })
+  }, [
+    compressionQuality,
+    compressionMaxWidth,
+    preserveAnimation,
+    outputFormat,
+    expiryMinutes,
+    selectedTags,
+  ])
 
   const primeImagesListCache = useCallback((results: UploadResult[]) => {
     const uploadedImages: ImageFile[] = results
@@ -469,6 +509,7 @@ export default function Home() {
         existingFiles={fileDetails}
         expiryMinutes={expiryMinutes}
         setExpiryMinutes={setExpiryMinutes}
+        selectedTags={selectedTags}
         onTagsChange={handleTagsChange}
         compressionQuality={compressionQuality}
         compressionMaxWidth={compressionMaxWidth}

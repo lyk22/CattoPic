@@ -186,8 +186,27 @@ export async function uploadSingleHandler(c: Context<{ Bindings: Env }>): Promis
     dbCommitted = true;
     r2PathsForRollback = null;
 
-    // Build result
-    const baseUrl = c.env.R2_PUBLIC_URL;
+    // Build result — invalid R2_PUBLIC_URL throws "Failed to parse URL" from URL()
+    const baseUrl = (c.env.R2_PUBLIC_URL ?? '').trim();
+    if (
+      !baseUrl
+      || baseUrl.includes('<')
+      || !/^https:\/\//i.test(baseUrl)
+    ) {
+      return errorResponse(
+        'R2_PUBLIC_URL must be set to a valid HTTPS base URL for public R2 access (Worker vars / wrangler.toml [vars]).',
+        500
+      );
+    }
+    try {
+      void new URL(baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+    } catch {
+      return errorResponse(
+        'R2_PUBLIC_URL is not a parseable URL; use e.g. https://pub-xxx.r2.dev or your R2 custom domain.',
+        500
+      );
+    }
+
     const urls = buildImageUrls({
       baseUrl,
       image: imageMetadata,

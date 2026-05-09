@@ -27,7 +27,8 @@ interface UploadSectionProps {
   existingFiles?: { id: string, file: File }[]
   expiryMinutes: number
   setExpiryMinutes: React.Dispatch<React.SetStateAction<number>>
-  onTagsChange?: (tags: string[]) => void
+  selectedTags: string[]
+  onTagsChange: (tags: string[]) => void
   compressionQuality: number
   compressionMaxWidth: number
   preserveAnimation: boolean
@@ -47,6 +48,7 @@ export default function UploadSection({
   existingFiles = [],
   expiryMinutes,
   setExpiryMinutes,
+  selectedTags,
   onTagsChange,
   compressionQuality,
   compressionMaxWidth,
@@ -60,7 +62,6 @@ export default function UploadSection({
   const [wasUploading, setWasUploading] = useState(false)
   const [exceedsLimit, setExceedsLimit] = useState(false)
   const [oversizedFiles, setOversizedFiles] = useState<string[]>([])
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [availableTags, setAvailableTags] = useState<string[]>([])
 
   // ZIP上传状态
@@ -116,15 +117,9 @@ export default function UploadSection({
     }
   }, [existingFiles]);
 
-  // 处理标签变化
   const handleTagsChange = (tags: string[]) => {
-    setSelectedTags(tags);
-
-    // 通知父组件
-    if (onTagsChange) {
-      onTagsChange(tags);
-    }
-  };
+    onTagsChange(tags)
+  }
 
   const handleFilesSelected = (files: File[]) => {
     // 获取当前的文件列表
@@ -251,7 +246,7 @@ export default function UploadSection({
             onConfirm={handleZipUploadConfirm}
             onCancel={zipUpload.reset}
           />
-          <ExpirySelector onChange={setExpiryMinutes} />
+          <ExpirySelector valueMinutes={expiryMinutes} onChange={setExpiryMinutes} />
           <TagSelector
             selectedTags={selectedTags}
             availableTags={availableTags}
@@ -313,7 +308,7 @@ export default function UploadSection({
               maxUploadCount={maxUploadCount}
             />
 
-            <ExpirySelector onChange={setExpiryMinutes} />
+            <ExpirySelector valueMinutes={expiryMinutes} onChange={setExpiryMinutes} />
 
             <TagSelector
               selectedTags={selectedTags}

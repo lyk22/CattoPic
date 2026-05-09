@@ -4,19 +4,51 @@ import { useState, useEffect } from 'react'
 import { ClockIcon } from './ui/icons'
 
 interface ExpirySelectorProps {
+  valueMinutes: number
   onChange: (minutes: number) => void
 }
 
-export default function ExpirySelector({ onChange }: ExpirySelectorProps) {
-  const [selectedOption, setSelectedOption] = useState<string>('never')
-  const [customValue, setCustomValue] = useState<number>(1)
-  const [timeUnit, setTimeUnit] = useState<'hours' | 'days'>('hours')
+/** Map stored minutes back to dropdown + custom UI (best-effort for arbitrary values). */
+function deriveExpiryUi(minutes: number): {
+  selectedOption: string
+  customValue: number
+  timeUnit: 'hours' | 'days'
+} {
+  if (!Number.isFinite(minutes) || minutes < 0) {
+    return { selectedOption: 'never', customValue: 1, timeUnit: 'hours' }
+  }
+  if (minutes === 0) return { selectedOption: 'never', customValue: 1, timeUnit: 'hours' }
+  if (minutes === 60) return { selectedOption: '1h', customValue: 1, timeUnit: 'hours' }
+  if (minutes === 1440) return { selectedOption: '24h', customValue: 1, timeUnit: 'hours' }
+  if (minutes === 10080) return { selectedOption: '7d', customValue: 1, timeUnit: 'hours' }
+  if (minutes === 43200) return { selectedOption: '30d', customValue: 1, timeUnit: 'hours' }
+  if (minutes > 0 && minutes % (24 * 60) === 0) {
+    return {
+      selectedOption: 'custom',
+      customValue: Math.max(1, Math.trunc(minutes / (24 * 60))),
+      timeUnit: 'days',
+    }
+  }
+  if (minutes > 0 && minutes % 60 === 0) {
+    const h = Math.trunc(minutes / 60)
+    return { selectedOption: 'custom', customValue: Math.max(1, h), timeUnit: 'hours' }
+  }
+  const hoursRounded = Math.max(1, Math.round(minutes / 60))
+  return { selectedOption: 'custom', customValue: hoursRounded, timeUnit: 'hours' }
+}
+
+export default function ExpirySelector({ valueMinutes, onChange }: ExpirySelectorProps) {
+  const [selectedOption, setSelectedOption] = useState(() => deriveExpiryUi(valueMinutes).selectedOption)
+  const [customValue, setCustomValue] = useState(() => deriveExpiryUi(valueMinutes).customValue)
+  const [timeUnit, setTimeUnit] = useState<'hours' | 'days'>(() => deriveExpiryUi(valueMinutes).timeUnit)
 
   useEffect(() => {
-    onChange(0)
-  }, [onChange])
+    const d = deriveExpiryUi(valueMinutes)
+    setSelectedOption(d.selectedOption)
+    setCustomValue(d.customValue)
+    setTimeUnit(d.timeUnit)
+  }, [valueMinutes])
 
-  // 处理选项变更
   const handleOptionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const option = e.target.value
     setSelectedOption(option)
@@ -39,32 +71,27 @@ export default function ExpirySelector({ onChange }: ExpirySelectorProps) {
         minutes = 30 * 24 * 60
         break
       case 'custom':
-        // 根据当前选择的时间单位计算分钟数
         minutes = timeUnit === 'hours' ? customValue * 60 : customValue * 60 * 24
         break
     }
     onChange(minutes)
   }
 
-  // 处理自定义值变更
   const handleCustomValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value)
+    const value = parseInt(e.target.value, 10)
     if (!isNaN(value) && value > 0) {
       setCustomValue(value)
       if (selectedOption === 'custom') {
-        // 根据当前选择的时间单位计算分钟数
         const minutes = timeUnit === 'hours' ? value * 60 : value * 60 * 24
         onChange(minutes)
       }
     }
   }
 
-  // 处理时间单位变更
   const handleTimeUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const unit = e.target.value as 'hours' | 'days'
     setTimeUnit(unit)
     if (selectedOption === 'custom') {
-      // 根据新的时间单位计算分钟数
       const minutes = unit === 'hours' ? customValue * 60 : customValue * 60 * 24
       onChange(minutes)
     }

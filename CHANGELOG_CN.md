@@ -20,6 +20,7 @@
 
 ### 变更
 
+- 上传表单偏好（压缩、过期时间、标签）通过 `app/utils/uploadCompressionPrefs.ts` 写入 `localStorage`，记录最后一次选择；单文件与 ZIP 共用，直至再次修改。
 - 移除根布局底部「Create By 猫猫博客」署名链接。
 - 当 WebP/AVIF 文件未生成/缺失时（例如超过 10MB 的上传），改用 Cloudflare Transform Images URL（`/cdn-cgi/image/...`）作为兜底输出方式。
 - `/api/random` 改为 302 重定向到实际图片 URL（不再由 Worker 代理回源返回图片字节，Transform-URL 场景更稳定）。
@@ -38,6 +39,7 @@
 
 ### 修复
 
+- 当 `R2_PUBLIC_URL` 未配置、仍为占位符或非法 HTTPS URL 时，上传接口返回明确错误（避免出现已成功写入 D1 后仍报笼统的 `Failed to parse URL`）。
 - 单图上传：若在已写入 R2 之后 D1 保存元数据失败，会删除本次已上传的 R2 对象，避免出现「前端提示失败但桶里仍有文件」；上传失败时返回 HTTP 500 并带上底层错误信息便于排查。
 - API Key 校验更新 `api_keys` 时不再使用 `RETURNING id`（旧版 D1 表若没有 `id` 列会报错 `no such column: id`），改为 `RETURNING key`。
 - 规范化误写成带后缀路径 `/api` 的 Worker 根地址，避免请求打成 `/api/api/...`（此前会导致校验接口 404）。
